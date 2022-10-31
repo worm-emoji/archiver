@@ -58,6 +58,12 @@ func (s *Server) add(w http.ResponseWriter, r *http.Request) {
 			t = time.Now()
 		}
 
+		// sometimes shortcuts send in titles that are urls, i'd
+		// rather them be null
+		if b.Title == b.URL {
+			b.Title = ""
+		}
+
 		_, err := s.db.Exec(
 			ctx, addQuery,
 			b.URL, nullStr(b.Title), nullStr(b.Description), b.Tags, t,
