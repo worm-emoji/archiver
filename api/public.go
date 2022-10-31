@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"net/http"
 	"time"
 )
@@ -20,10 +21,11 @@ func (s *Server) getPublicBookmarks(w http.ResponseWriter, r *http.Request) {
 	`
 
 	var (
-		ctx        = r.Context()
-		url, title string
-		ts         time.Time
-		resp       = []PublicBookmark{}
+		ctx   = r.Context()
+		url   string
+		title sql.NullString
+		ts    time.Time
+		resp  = []PublicBookmark{}
 	)
 
 	rows, err := s.db.Query(ctx, query)
@@ -40,7 +42,7 @@ func (s *Server) getPublicBookmarks(w http.ResponseWriter, r *http.Request) {
 
 		resp = append(resp, PublicBookmark{
 			URL:   url,
-			Title: title,
+			Title: title.String,
 			Time:  ts,
 		})
 	}
