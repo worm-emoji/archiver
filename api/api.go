@@ -30,7 +30,7 @@ func (s *Server) Handler(env, gitSha string) http.Handler {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, gitSha)
 	})
-	mux.HandleFunc("/api/add", s.add)
+	mux.HandleFunc("/api/add", s.withAuth(s.add))
 
 	h := http.Handler(mux)
 	h = versionHandler(h, gitSha)
@@ -88,6 +88,40 @@ func RemoteAddrHandler(fieldKey string) func(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(r.Context()))
 		})
 	}
+}
+
+func (s *Server) withAuth(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		key := strings.TrimLeft(r.Header.Get("Authorization"), "Bearer ")
+		if key == "" {
+			s.sendJSONError(r, w, nil, http.StatusUnauthorized, "missing auth token")
+			return
+		}
+
+		var isValid bool
+
+		const query = `
+			SELECT EXISTS (
+				SELECT 1
+				FROM api_keys
+				WHERE key = $1
+			);
+		`
+		err := s.db.QueryRow(r.Context(), query, key).Scan(&isValid)
+
+		if err != nil {
+			s.sendJSONError(r, w, err, http.StatusInternalServerError, "error checking auth token")
+			return
+		}
+
+		if !isValid {
+			s.sendJSONError(r, w, nil, http.StatusUnauthorized, "invalid auth token")
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func versionHandler(h http.Handler, sha string) http.Handler {

@@ -91,6 +91,7 @@ func main() {
 	check(err)
 
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+os.Getenv("ARCHIVER_API_KEY"))
 
 	client := &http.Client{}
 	resp, err := client.Do(req)

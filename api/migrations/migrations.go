@@ -15,4 +15,12 @@ var Migrations = []migrate.Migration{
 			);
 		`,
 	},
+	{
+		Name: "2022-10-30.1.init.sql",
+		SQL: `
+			CREATE TABLE api_keys (
+				key text PRIMARY KEY
+			);
+		`,
+	},
 }
