@@ -23,4 +23,10 @@ var Migrations = []migrate.Migration{
 			);
 		`,
 	},
+	{
+		Name: "2022-10-30.2.init.sql",
+		SQL: `
+			ALTER TABLE "bookmarks" ADD PRIMARY KEY ("url");
+		`,
+	},
 }
