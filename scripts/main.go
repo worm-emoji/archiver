@@ -9,24 +9,27 @@ import (
 	"log"
 	"time"
 
+	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 )
 
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
+
 func main() {
-	// create context
-	t := time.Now()
 	ctx, cancel := chromedp.NewContext(context.Background())
 	defer cancel()
-	fmt.Println("time to create context", time.Since(t))
 
 	// capture pdf
 	var pdf, scr []byte
-	t = time.Now()
-	if err := chromedp.Run(ctx, printToPDF(`https://ylukem.com`, &pdf, &scr)); err != nil {
+	var body string
+	if err := chromedp.Run(ctx, extractContent(`https://twitter.com/worm_emoji/status/1585695916547182592`, &pdf, &scr, &body)); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("time to run", time.Since(t))
 
 	if err := ioutil.WriteFile("sample.pdf", pdf, 0o644); err != nil {
 		log.Fatal(err)
@@ -40,17 +43,28 @@ func main() {
 }
 
 // print a specific pdf page.
-func printToPDF(urlstr string, pdf, scr *[]byte) chromedp.Tasks {
+func extractContent(urlstr string, pdf, scr *[]byte, text *string) chromedp.Tasks {
 	return chromedp.Tasks{
+		chromedp.EmulateViewport(1920, 1080),
+		network.SetExtraHTTPHeaders(network.Headers(map[string]any{
+			"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36",
+		})),
 		chromedp.Navigate(urlstr),
-		chromedp.FullScreenshot(scr, 90),
 		chromedp.ActionFunc(func(ctx context.Context) error {
-			buf, _, err := page.PrintToPDF().WithPrintBackground(false).Do(ctx)
+			time.Sleep(5 * time.Second)
+			return nil
+		}),
+		chromedp.Evaluate(`document.body.innerText;`, text),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			buf, _, err := page.PrintToPDF().
+				WithPrintBackground(false).
+				Do(ctx)
 			if err != nil {
 				return err
 			}
 			*pdf = buf
 			return nil
 		}),
+		chromedp.FullScreenshot(scr, 90),
 	}
 }
