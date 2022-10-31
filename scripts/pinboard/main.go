@@ -68,11 +68,17 @@ func main() {
 			title = d
 		}
 
+		tags := strings.Split(b.Tags, " ")
+
+		if len(tags) == 0 || tags[0] == "" {
+			tags = nil
+		}
+
 		normalized[i] = Bookmark{
 			URL:         b.Href,
 			Title:       title,
 			Description: b.Extended,
-			Tags:        strings.Split(b.Tags, " "),
+			Tags:        tags,
 			Time:        b.Time,
 		}
 	}
