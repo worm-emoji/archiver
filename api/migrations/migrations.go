@@ -29,4 +29,16 @@ var Migrations = []migrate.Migration{
 			ALTER TABLE "bookmarks" ADD PRIMARY KEY ("url");
 		`,
 	},
+	{
+		Name: "2022-10-31.crawls.sql",
+		SQL: `
+			CREATE TABLE IF NOT EXISTS crawls (
+				url text NOT NULL,
+				ts timestamptz NOT NULL DEFAULT now(),
+				title text,
+				body text
+			);
+			ALTER TABLE "bookmarks" ADD COLUMN "crawl_attempt" timestamp with time zone;
+		`,
+	},
 }

@@ -10,6 +10,8 @@ import (
 	"time"
 
 	_ "embed"
+
+	"github.com/worm-emoji/archiver/api"
 )
 
 var (
@@ -17,14 +19,6 @@ var (
 	//go:embed pb.json
 	pbjson []byte
 )
-
-type Bookmark struct {
-	URL         string    `json:"url"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Tags        []string  `json:"tags"`
-	Time        time.Time `json:"time"`
-}
 
 type PinboardBookmark struct {
 	Href        string    `json:"href"`
@@ -36,10 +30,6 @@ type PinboardBookmark struct {
 	Shared      string    `json:"shared"`
 	Toread      string    `json:"toread"`
 	Tags        string    `json:"tags"`
-}
-
-type AddRequest struct {
-	Bookmarks []Bookmark `json:"bookmarks"`
 }
 
 func check(err error) {
@@ -57,7 +47,7 @@ func main() {
 	err := json.Unmarshal(pbjson, &pb)
 	check(err)
 
-	normalized := make([]Bookmark, len(pb))
+	normalized := make([]api.Bookmark, len(pb))
 
 	for i, b := range pb {
 		// some pinboard descriptions are "false" which is not a valid json string
@@ -74,7 +64,7 @@ func main() {
 			tags = nil
 		}
 
-		normalized[i] = Bookmark{
+		normalized[i] = api.Bookmark{
 			URL:         b.Href,
 			Title:       title,
 			Description: b.Extended,
@@ -86,7 +76,7 @@ func main() {
 	// make http request to api
 	apiEndpoint := apiURL + "/api/add"
 
-	body := AddRequest{
+	body := api.AddBookmarkRequest{
 		Bookmarks: normalized,
 	}
 

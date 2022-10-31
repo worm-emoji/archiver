@@ -15,25 +15,20 @@ type Bookmark struct {
 	Time        time.Time `json:"time"`
 }
 
-type AddRequest struct {
+type AddBookmarkRequest struct {
 	Bookmarks []Bookmark `json:"bookmarks"`
 }
 
-func nullStr(s string) sql.NullString {
-	if s == "" {
-		return sql.NullString{}
-	}
-	return sql.NullString{
-		String: s,
-		Valid:  true,
-	}
-}
-
-func (s *Server) add(w http.ResponseWriter, r *http.Request) {
+func (s *Server) addBookmark(w http.ResponseWriter, r *http.Request) {
 	var (
-		req AddRequest
+		req AddBookmarkRequest
 		ctx = r.Context()
 	)
+
+	if r.Method != http.MethodPost {
+		s.sendJSONError(r, w, nil, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.sendJSONError(r, w, err, http.StatusBadRequest, "invalid request")
@@ -83,4 +78,78 @@ func (s *Server) add(w http.ResponseWriter, r *http.Request) {
 	s.sendJSON(r, w, map[string]any{
 		"status": "ok",
 	})
+}
+
+type AddCrawlRequest struct {
+	URL   string `json:"url"`
+	Title string `json:"title"`
+	Body  string `json:"body"`
+}
+
+func (s *Server) addCrawl(w http.ResponseWriter, r *http.Request) {
+	var (
+		req AddCrawlRequest
+		ctx = r.Context()
+	)
+
+	if r.Method != http.MethodPost {
+		s.sendJSONError(r, w, nil, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.sendJSONError(r, w, err, http.StatusBadRequest, "invalid request")
+		return
+	}
+	defer r.Body.Close()
+
+	if req.URL == "" {
+		s.sendJSONError(r, w, nil, http.StatusBadRequest, "no url provided")
+		return
+	}
+
+	const addQuery = `
+	INSERT INTO crawls (url, title, body)
+	VALUES ($1, $2, $3);
+	`
+
+	_, err := s.db.Exec(
+		ctx, addQuery,
+		req.URL, nullStr(req.Title), nullStr(req.Body),
+	)
+
+	if err != nil {
+		s.sendJSONError(r, w, err, http.StatusInternalServerError, "failed to add bookmark")
+		return
+	}
+
+	const updateQuery = `
+	update bookmarks
+	set title = $1
+	where url = $2
+	and title is null;`
+
+	_, err = s.db.Exec(
+		ctx, updateQuery,
+		req.Title, req.URL,
+	)
+
+	if err != nil {
+		s.sendJSONError(r, w, err, http.StatusInternalServerError, "failed to update bookmark")
+		return
+	}
+
+	s.sendJSON(r, w, map[string]any{
+		"status": "ok",
+	})
+}
+
+func nullStr(s string) sql.NullString {
+	if s == "" {
+		return sql.NullString{}
+	}
+	return sql.NullString{
+		String: s,
+		Valid:  true,
+	}
 }
