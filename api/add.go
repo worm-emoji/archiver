@@ -64,6 +64,11 @@ func (s *Server) add(w http.ResponseWriter, r *http.Request) {
 			b.Title = ""
 		}
 
+		// no tags? null
+		if len(b.Tags) == 0 {
+			b.Tags = nil
+		}
+
 		_, err := s.db.Exec(
 			ctx, addQuery,
 			b.URL, nullStr(b.Title), nullStr(b.Description), b.Tags, t,
