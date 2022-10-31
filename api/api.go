@@ -30,7 +30,9 @@ func (s *Server) Handler(env, gitSha string) http.Handler {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, gitSha)
 	})
-	mux.HandleFunc("/api/add", s.withAuth(s.add))
+	mux.HandleFunc("/api/bookmark", s.withAuth(s.addBookmark))
+	mux.HandleFunc("/api/crawl", s.withAuth(s.addCrawl))
+	mux.HandleFunc("/api/crawl/pending", s.withAuth(s.getPendingCrawls))
 
 	h := http.Handler(mux)
 	h = versionHandler(h, gitSha)
