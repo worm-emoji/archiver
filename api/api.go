@@ -31,6 +31,7 @@ func (s *Server) Handler(env, gitSha string) http.Handler {
 		fmt.Fprint(w, gitSha)
 	})
 	mux.HandleFunc("/api/add", s.withAuth(s.add))
+	mux.HandleFunc("/api/bookmarks/public", s.getPublicBookmarks)
 
 	h := http.Handler(mux)
 	h = versionHandler(h, gitSha)
